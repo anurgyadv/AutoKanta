@@ -1,33 +1,54 @@
 import time
 import pyautogui
+import subprocess
+import keyboard
+import json
 
 # Function to type a string
 def type_string(string, delay=0.05):
     for char in string:
-        pyautogui.write(char)  # Simulate typing each character
-        # time.sleep(delay)  # Small delay between keystrokes
+        pyautogui.write(char)
+        time.sleep(delay)
 
-# Function to press a key multiple times
-def press_key(key, times=1, delay=0.2):
-    for _ in range(times):
-        pyautogui.press(key)
-        # time.sleep(delay)
-
+# Function to switch windows using Alt+Tab
 def switch_window():
     pyautogui.hotkey('alt', 'tab')
-    # time.sleep(1)  
+    time.sleep(1)  # Allow the switch to complete
 
-print("Switching window in 3 seconds...")
-# time.sleep(3)
+# Function to fetch data from Google Sheets API
+def fetch_google_sheets():
+    print("Fetching data from Google Sheets...")
+    result = subprocess.run(["python", "sheets_api.py"], capture_output=True, text=True)
+    
+    # Try to parse JSON output (assuming sheets_api.py prints JSON)
+    try:
+        data = json.loads(result.stdout)
+        return data
+    except json.JSONDecodeError:
+        print("Failed to parse JSON data from sheets_api.py")
+        return []
 
-switch_window()
+# Function to type all values from fetched data
+def type_data_from_sheets(data):
+    if not data:
+        print("No data to type.")
+        return
 
-press_key('esc', 3)
+    switch_window()  # Switch to the target application
+    
+    for entry in data:
+        row_values = list(entry.values())  # Get all values in the row
+        text_to_type = " | ".join(row_values)  # Join values with separator
+        type_string(text_to_type)  # Type the values
+        pyautogui.press("enter")  # Press Enter after each row
 
-type_string("Hello, Testing how the typing works")
+# Function to execute everything when hotkey is pressed
+def process_data():
+    data = fetch_google_sheets()
+    type_data_from_sheets(data)
 
-pyautogui.press('enter')
+# Bind a hotkey to fetch data, switch window, and start typing
+keyboard.add_hotkey("ctrl+alt+g", process_data)
 
-type_string("Hmmmm, works fine?")
-
-print("Typing completed.")
+print("Press 'Ctrl + Alt + G' to fetch Google Sheets data, switch windows, and type the data.")
+keyboard.wait()  # Keep the script running
