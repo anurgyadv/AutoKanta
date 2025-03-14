@@ -33,11 +33,28 @@ def get_sheet_data():
         logger.error(f"Error fetching data from Google Sheets: {e}")
         return []
 
+def load_existing_csv():
+    """Load existing CSV data to check for duplicates"""
+    if not os.path.exists(LOCAL_CSV_PATH):
+        return set()  # Return empty set if file doesn't exist
+
+    existing_entries = set()
+    with open(LOCAL_CSV_PATH, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            # Create a tuple key using relevant columns
+            key = (row['Timestamp'], row['Vehicle Type'], row['Material'], row['Party Ref:'])
+            existing_entries.add(key)
+
+    return existing_entries
+
 def save_to_csv(entries):
-    """Save formatted Google Sheets data to CSV"""
+    """Save formatted Google Sheets data to CSV while avoiding duplicates"""
     if not entries:
         print("No data to save.")
         return
+
+    existing_entries = load_existing_csv()
 
     # Define field names (headers from the first entry)
     fieldnames = list(entries[0].keys())
@@ -45,16 +62,27 @@ def save_to_csv(entries):
     # Check if file exists to avoid rewriting headers
     file_exists = os.path.exists(LOCAL_CSV_PATH)
 
+    new_entries = []
+    for entry in entries:
+        key = (entry['Timestamp'], entry['Vehicle Type'], entry['Material'], entry['Party Ref:'])
+        if key not in existing_entries:
+            new_entries.append(entry)
+            existing_entries.add(key)  # Add to set to prevent future duplicates in the same run
+
+    if not new_entries:
+        print("No new entries to save.")
+        return
+
     with open(LOCAL_CSV_PATH, 'a', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
 
         if not file_exists:
             writer.writeheader()  # Write header only once
 
-        # Write data rows
-        writer.writerows(entries)
+        # Write only new data rows
+        writer.writerows(new_entries)
 
-    print(f"Saved {len(entries)} rows to {LOCAL_CSV_PATH}")
+    print(f"Saved {len(new_entries)} new rows to {LOCAL_CSV_PATH}")
 
 if __name__ == "__main__":
     entries = get_sheet_data()
