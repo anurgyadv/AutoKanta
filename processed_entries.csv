@@ -1,3 +1,3 @@
-Timestamp,1st entry or 2nd entry,Vehicle Type,Material,Party Ref:,Gross or Tare,Save Bill,Print
-3/9/2025 21:56:24,1st,Dumper 250,Sand,Ozone city ,Gross,Y,y
-3/14/2025 10:21:23,1st,Truck 250,Sand,,Gross,Y,y
+1st entry or 2nd entry,Material,Party Ref:,Gross or Tare,Save Bill,Print,Date,Time,Cost,Vehicle Type
+1st,Sand,Ozone city ,Gross,Y,Y,2025-03-09,21:56:24,250,Dumper
+1st,Sand,,Gross,Y,Y,2025-03-14,10:21:23,250,Truck

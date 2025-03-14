@@ -33,45 +33,60 @@ def get_sheet_data():
         logger.error(f"Error fetching data from Google Sheets: {e}")
         return []
 
-def load_existing_csv():
-    """Load existing CSV data to check for duplicates"""
-    if not os.path.exists(LOCAL_CSV_PATH):
-        return set()  # Return empty set if file doesn't exist
-
-    existing_entries = set()
-    with open(LOCAL_CSV_PATH, 'r', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            # Create a tuple key using relevant columns
-            key = (row['Timestamp'], row['Vehicle Type'], row['Material'], row['Party Ref:'])
-            existing_entries.add(key)
-
-    return existing_entries
+def split_vehicle_type(vehicle_type):
+    """Split Vehicle Type into Cost and Vehicle Type"""
+    # Example: "RMC TRUCK 250" -> Cost = "250", Vehicle Type = "RMC TRUCK"
+    parts = vehicle_type.split()
+    if parts and parts[-1].isdigit():  # Check if the last part is a number
+        cost = parts[-1]
+        vehicle = ' '.join(parts[:-1])  # Join all parts except the last one
+        return cost, vehicle
+    return '', vehicle_type  # If no cost is found, return empty cost and original vehicle type
 
 def save_to_csv(entries):
-    """Save formatted Google Sheets data to CSV while avoiding duplicates"""
+    """Save formatted Google Sheets data to CSV"""
     if not entries:
         print("No data to save.")
         return
 
-    existing_entries = load_existing_csv()
-
     # Define field names (headers from the first entry)
     fieldnames = list(entries[0].keys())
+
+    # Remove 'Timestamp' and 'Vehicle Type', and add 'Date', 'Time', 'Cost', and 'Vehicle Type'
+    if 'Timestamp' in fieldnames:
+        fieldnames.remove('Timestamp')
+    if 'Vehicle Type' in fieldnames:
+        fieldnames.remove('Vehicle Type')
+    fieldnames.extend(['Date', 'Time', 'Cost', 'Vehicle Type'])
 
     # Check if file exists to avoid rewriting headers
     file_exists = os.path.exists(LOCAL_CSV_PATH)
 
-    new_entries = []
+    # Process entries to split Timestamp, Vehicle Type, and capitalize Yes/No answers
+    processed_entries = []
     for entry in entries:
-        key = (entry['Timestamp'], entry['Vehicle Type'], entry['Material'], entry['Party Ref:'])
-        if key not in existing_entries:
-            new_entries.append(entry)
-            existing_entries.add(key)  # Add to set to prevent future duplicates in the same run
+        # Split the Timestamp into Date and Time
+        timestamp = entry.pop('Timestamp', '')
+        try:
+            dt = datetime.strptime(timestamp, '%m/%d/%Y %H:%M:%S')  # Adjust format to match your data
+            entry['Date'] = dt.strftime('%Y-%m-%d')
+            entry['Time'] = dt.strftime('%H:%M:%S')
+        except ValueError:
+            entry['Date'] = ''
+            entry['Time'] = ''
 
-    if not new_entries:
-        print("No new entries to save.")
-        return
+        # Split Vehicle Type into Cost and Vehicle Type
+        vehicle_type = entry.pop('Vehicle Type', '')
+        cost, vehicle = split_vehicle_type(vehicle_type)
+        entry['Cost'] = cost
+        entry['Vehicle Type'] = vehicle
+
+        # Capitalize 'Yes' or 'No' answers
+        for key, value in entry.items():
+            if isinstance(value, str) and value.lower() in ['yes', 'no', 'y', 'n']:
+                entry[key] = value.upper()
+
+        processed_entries.append(entry)
 
     with open(LOCAL_CSV_PATH, 'a', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -79,10 +94,10 @@ def save_to_csv(entries):
         if not file_exists:
             writer.writeheader()  # Write header only once
 
-        # Write only new data rows
-        writer.writerows(new_entries)
+        # Write data rows
+        writer.writerows(processed_entries)
 
-    print(f"Saved {len(new_entries)} new rows to {LOCAL_CSV_PATH}")
+    print(f"Saved {len(processed_entries)} rows to {LOCAL_CSV_PATH}")
 
 if __name__ == "__main__":
     entries = get_sheet_data()
