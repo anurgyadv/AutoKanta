@@ -1,14 +1,36 @@
-# This is the beginning of automating a Dharam Kanta, based on a web form for drivers.
+# Dharam Kanta Automation System
 
+## Background
 
-Workflow as of now :
-1. Driver scans a QR, reaches a google form.
-2. Payment is done with UPI with address provided on the webform. (Payment part would be added much later in the future.)
-3. Once Payment is validated using some UPI API (Assuming one exits, if not we will work out some other way)
-4. The driver will fill a form, which will have all the required questions.
-5. The raspberry pi (Connected to machine), runs a script which detects any new entries in the form.
-6. Use these entries, to input them into the machine and prints the final reciept.
+The Dharam Kanta Automation System aims to modernize traditional weighing bridges by eliminating manual data entry. Currently, weighing bridge operators must manually type driver and vehicle information into their systems, which is time-consuming and prone to errors. Our solution bridges the gap between online forms and legacy weighing software.
 
-The raspberry pi here will be functioning as an automated keyboard.
+## Current Implementation
 
-More to follow.
+- **Digital Form Access**: Drivers scan a QR code to access a Google Form
+- **Data Collection**: Form collects vehicle registration, driver details, cargo information
+- **Backend Integration**: Form submissions stored in Google Sheets
+- **Automation Layer**: Raspberry Pi configured as USB keyboard monitors for new submissions
+- **Automated Input**: Pi automatically inputs form data into weighing machine software
+
+The system uses a Raspberry Pi that acts as a USB keyboard, typing the information submitted through online forms directly into the weighing bridge software. This eliminates manual data entry while allowing continued use of existing weighing software.
+
+## Future Steps
+
+### Short-term
+- Improve error handling and recovery mechanisms
+- Add basic validation for form inputs
+- Create simple status monitoring system
+
+### Medium-term
+- Implement UPI payment instructions in the form
+- Develop payment verification system
+- Create admin dashboard for monitoring system status
+
+### Long-term
+- Full integration with payment gateways for automatic verification
+- Mobile app for drivers with additional features
+- Data analytics for weighing patterns and efficiency improvements
+
+---
+
+*This project is currently in active development*
