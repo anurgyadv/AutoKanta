@@ -43,8 +43,34 @@ def split_vehicle_type(vehicle_type):
         return cost, vehicle
     return '', vehicle_type  # If no cost is found, return empty cost and original vehicle type
 
+def load_existing_csv():
+    """Load existing CSV data to check for duplicates"""
+    if not os.path.exists(LOCAL_CSV_PATH):
+        return set()  # Return empty set if file doesn't exist
+
+    existing_entries = set()
+    with open(LOCAL_CSV_PATH, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            # Create a unique key for each row
+            key = (
+                row['1st entry or 2nd entry'],
+                row['Material'],
+                row['Party Ref:'],
+                row['Gross or Tare'],
+                row['Save Bill'],
+                row['Print'],
+                row['Date'],
+                row['Time'],
+                row['Cost'],
+                row['Vehicle Type']
+            )
+            existing_entries.add(key)
+
+    return existing_entries
+
 def save_to_csv(entries):
-    """Save formatted Google Sheets data to CSV"""
+    """Save formatted Google Sheets data to CSV while avoiding duplicates"""
     if not entries:
         print("No data to save.")
         return
@@ -59,8 +85,8 @@ def save_to_csv(entries):
         fieldnames.remove('Vehicle Type')
     fieldnames.extend(['Date', 'Time', 'Cost', 'Vehicle Type'])
 
-    # Check if file exists to avoid rewriting headers
-    file_exists = os.path.exists(LOCAL_CSV_PATH)
+    # Load existing entries from CSV
+    existing_entries = load_existing_csv()
 
     # Process entries to split Timestamp, Vehicle Type, and capitalize Yes/No answers
     processed_entries = []
@@ -86,7 +112,31 @@ def save_to_csv(entries):
             if isinstance(value, str) and value.lower() in ['yes', 'no', 'y', 'n']:
                 entry[key] = value.upper()
 
-        processed_entries.append(entry)
+        # Create a unique key for the current entry
+        key = (
+            entry['1st entry or 2nd entry'],
+            entry['Material'],
+            entry['Party Ref:'],
+            entry['Gross or Tare'],
+            entry['Save Bill'],
+            entry['Print'],
+            entry['Date'],
+            entry['Time'],
+            entry['Cost'],
+            entry['Vehicle Type']
+        )
+
+        # Add to processed_entries only if it's not a duplicate
+        if key not in existing_entries:
+            processed_entries.append(entry)
+            existing_entries.add(key)  # Add to set to prevent future duplicates in the same run
+
+    if not processed_entries:
+        print("No new entries to save.")
+        return
+
+    # Check if file exists to avoid rewriting headers
+    file_exists = os.path.exists(LOCAL_CSV_PATH)
 
     with open(LOCAL_CSV_PATH, 'a', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -94,10 +144,10 @@ def save_to_csv(entries):
         if not file_exists:
             writer.writeheader()  # Write header only once
 
-        # Write data rows
+        # Write only new data rows
         writer.writerows(processed_entries)
 
-    print(f"Saved {len(processed_entries)} rows to {LOCAL_CSV_PATH}")
+    print(f"Saved {len(processed_entries)} new rows to {LOCAL_CSV_PATH}")
 
 if __name__ == "__main__":
     entries = get_sheet_data()

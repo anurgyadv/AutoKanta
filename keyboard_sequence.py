@@ -17,16 +17,8 @@ def switch_window():
 
 # Function to fetch data from Google Sheets API
 def fetch_google_sheets():
-    print("Fetching data from Google Sheets...")
-    result = subprocess.run(["python", "sheets_api.py"], capture_output=True, text=True)
-    
-    # Try to parse JSON output (assuming sheets_api.py prints JSON)
-    try:
-        data = json.loads(result.stdout)
-        return data
-    except json.JSONDecodeError:
-        print("Failed to parse JSON data from sheets_api.py")
-        return []
+    # Run sheets api script
+    subprocess.run(["python", "sheets_api.py"]) 
 
 # Function to type all values from fetched data
 def type_data_from_sheets(data):
